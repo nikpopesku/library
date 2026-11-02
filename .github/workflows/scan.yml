@@ -5,6 +5,16 @@ on:
   schedule:
     - cron: '0 7 * * 1,4'
   workflow_dispatch:
+    inputs:
+      image-ref:
+        description: 'Image to scan (defaults to prod :latest)'
+        type: string
+        required: false
+      fail-on-findings:
+        description: 'Fail the run when the scan finds vulnerabilities (Slack is notified either way)'
+        type: boolean
+        required: false
+        default: true
   workflow_call:
     inputs:
       image-ref:
