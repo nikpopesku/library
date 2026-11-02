@@ -1,0 +1,97 @@
+---
+name: image-scan
+
+on:
+  schedule:
+    - cron: '0 7 * * 1,4'
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      image-ref:
+        description: 'Image to scan (defaults to prod :latest)'
+        type: string
+        required: false
+      fail-on-findings:
+        description: 'Fail the run when the scan finds vulnerabilities (Slack is notified either way)'
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  packages: read
+
+jobs:
+  scan:
+    name: Scan reading image
+    runs-on: ubuntu-latest
+    env:
+      SLACK_SECURITY_WEBHOOK_URL: ${{ secrets.SLACK_SECURITY_WEBHOOK_URL }}
+      IMAGE_REF: ${{ inputs.image-ref || 'ghcr.io/nikpopesku/reading-web:latest' }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Log in to GHCR
+        id: login
+        uses: docker/login-action@v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Findings are handled separately; a failure here means the scanner itself broke.
+      - name: Run Trivy vulnerability scanner
+        id: trivy
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          image-ref: ${{ env.IMAGE_REF }}
+          scanners: vuln
+          format: json
+          output: trivy.json
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          exit-code: '0'
+
+      - name: Summarise findings
+        id: summary
+        if: steps.trivy.outcome == 'success'
+        run: |
+          VULNS='[.Results[]? | .Vulnerabilities[]?]'
+          echo "count=$(jq "$VULNS | length" trivy.json)" >> "$GITHUB_OUTPUT"
+          jq -r "$VULNS | sort_by(.Severity != \"CRITICAL\") | .[]
+            | \"• \(.VulnerabilityID) \(.PkgName) \(.InstalledVersion) → \(.FixedVersion) (\(.Severity))\"
+            | gsub(\"&\"; \"&amp;\") | gsub(\"<\"; \"&lt;\") | gsub(\">\"; \"&gt;\")" trivy.json > findings.txt
+          cat findings.txt
+
+      - name: Notify Slack on findings
+        if: steps.summary.outputs.count > 0
+        env:
+          COUNT: ${{ steps.summary.outputs.count }}
+        run: |
+          if [ -z "$SLACK_SECURITY_WEBHOOK_URL" ]; then
+            echo "::warning::SLACK_SECURITY_WEBHOOK_URL is not set; skipping the Slack notification."
+            exit 0
+          fi
+          TEXT=":warning: Vulnerability scan found $COUNT CRITICAL/HIGH issue(s) in *${IMAGE_REF}*"
+          TEXT+=" — <${RUN_URL}|view results>"
+          TEXT+=$'\n'"$(head -n 5 findings.txt)"
+          if [ "$COUNT" -gt 5 ]; then
+            TEXT+=$'\n'"…and $((COUNT - 5)) more"
+          fi
+          jq -n --arg text "$TEXT" '{text: $text}' \
+            | curl -fsS -X POST -H "Content-type: application/json" --data @- "$SLACK_SECURITY_WEBHOOK_URL"
+
+      - name: Notify Slack when the scan could not run
+        if: >-
+          always() && (steps.login.outcome == 'failure' || steps.trivy.outcome == 'failure'
+          || steps.summary.outcome == 'failure')
+        run: |
+          if [ -z "$SLACK_SECURITY_WEBHOOK_URL" ]; then
+            echo "::warning::SLACK_SECURITY_WEBHOOK_URL is not set; skipping the Slack notification."
+            exit 0
+          fi
+          jq -n --arg text ":x: Image scan could not run for *${IMAGE_REF}* — <${RUN_URL}|view logs>" '{text: $text}' \
+            | curl -fsS -X POST -H "Content-type: application/json" --data @- "$SLACK_SECURITY_WEBHOOK_URL"
+
+      # Scheduled/manual runs have no workflow_call input; absent must not mean false.
+      - name: Fail on findings
+        if: steps.summary.outputs.count > 0 && format('{0}', inputs.fail-on-findings) != 'false'
+        run: exit 1
