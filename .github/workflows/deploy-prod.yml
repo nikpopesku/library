@@ -245,6 +245,7 @@ jobs:
   scan:
     needs: build-and-deploy
     permissions:
+      contents: read
       packages: read
     uses: ./.github/workflows/scan.yml
     with:

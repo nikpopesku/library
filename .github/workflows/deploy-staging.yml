@@ -149,6 +149,7 @@ jobs:
       - changes
     if: needs.changes.outputs.scan == 'true'
     permissions:
+      contents: read
       packages: read
     uses: ./.github/workflows/scan.yml
     with:

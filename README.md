@@ -70,7 +70,11 @@ when findings exist. Production post-deploy findings notify without failing the 
 creation and release notifications do not depend on scanning. Scanner or registry failures still
 fail the scan job and send a separate error notification.
 
-Configure the repository Actions secret `SLACK_SECURITY_WEBHOOK_URL` with the security-channel
+Configure the repository Actions secret `SLACK_SECURITY_WEBHOOK_URL` with the `#security` channel's
 incoming webhook. Alerts include the image, finding count, up to five findings (CRITICAL first),
-and a link to the run logs. Clean scans send no message. If the webhook is missing, the workflow
-logs a warning and skips notification; configure it before relying on security alerts.
+and a link to the run logs. Clean scans send no message. As in `pe_backend`, a missing webhook
+or failed Slack request fails the notification step instead of silently skipping delivery.
+Checkout, registry, scanner, and invalid-report failures send a distinct error notification.
+
+Run `.github/scripts/image-scan.test.sh` to check the shared scan helper and Slack payloads locally
+with fixture reports and a stubbed HTTP client; these tests do not post to Slack.
