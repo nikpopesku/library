@@ -1,0 +1,102 @@
+---
+name: image-scan
+
+on:
+  schedule:
+    - cron: '0 7 * * 1,4'
+  workflow_dispatch:
+    inputs:
+      image-ref:
+        description: 'Image to scan (defaults to prod :latest)'
+        type: string
+        required: false
+      fail-on-findings:
+        description: 'Fail the run when the scan finds vulnerabilities (Slack is notified either way)'
+        type: boolean
+        required: false
+        default: true
+  workflow_call:
+    inputs:
+      image-ref:
+        description: 'Image to scan (defaults to prod :latest)'
+        type: string
+        required: false
+      fail-on-findings:
+        description: 'Fail the run when the scan finds vulnerabilities (Slack is notified either way)'
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  scan:
+    name: Scan reading image
+    runs-on: ubuntu-latest
+    env:
+      SLACK_SECURITY_WEBHOOK_URL: ${{ secrets.SLACK_SECURITY_WEBHOOK_URL }}
+      IMAGE_REF: ${{ inputs.image-ref || 'ghcr.io/nikpopesku/reading-web:latest' }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Check out scan helpers
+        id: checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Log in to GHCR
+        id: login
+        uses: docker/login-action@v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Findings are handled separately; a failure here means the scanner itself broke.
+      - name: Run Trivy vulnerability scanner
+        id: trivy
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          image-ref: ${{ env.IMAGE_REF }}
+          scanners: vuln
+          format: json
+          output: trivy.json
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          exit-code: '0'
+
+      - name: Summarise findings
+        id: summary
+        if: steps.trivy.outcome == 'success'
+        run: .github/scripts/image-scan.sh summarise trivy.json
+
+      - name: Notify Slack on findings
+        if: steps.summary.outputs.count > 0
+        env:
+          COUNT: ${{ steps.summary.outputs.count }}
+        run: .github/scripts/image-scan.sh notify-findings "$COUNT" findings.txt
+
+      # An explicit status check prevents the implicit success() from suppressing error alerts.
+      - name: Notify Slack when the scan could not run
+        if: >-
+          always() && (steps.checkout.outcome == 'failure' || steps.login.outcome == 'failure'
+          || steps.trivy.outcome == 'failure' || steps.summary.outcome == 'failure')
+        run: |
+          if [ -x .github/scripts/image-scan.sh ]; then
+            exec .github/scripts/image-scan.sh notify-error
+          fi
+          # If checkout failed, the helper is unavailable, but the error must still be reported.
+          if [ -z "$SLACK_SECURITY_WEBHOOK_URL" ]; then
+            echo "::error::SLACK_SECURITY_WEBHOOK_URL is not set; the error notification was NOT delivered."
+            exit 1
+          fi
+          jq -n --arg text ":x: Image scan could not run for *${IMAGE_REF}* — <${RUN_URL}|view logs>" '{text: $text}' \
+            | curl -fsS -X POST -H "Content-type: application/json" --data @- "$SLACK_SECURITY_WEBHOOK_URL"
+
+      # Scheduled/manual runs have no workflow_call input; absent must not mean false.
+      - name: Fail on findings
+        if: ${{ !cancelled() && steps.summary.outputs.count > 0 && format('{0}', inputs.fail-on-findings) != 'false' }}
+        run: exit 1

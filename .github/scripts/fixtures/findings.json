@@ -1,0 +1,64 @@
+{
+ "SchemaVersion": 2,
+ "Results": [
+  {
+   "Target": "t1",
+   "Vulnerabilities": [
+    {
+     "VulnerabilityID": "CVE-1",
+     "PkgName": "a",
+     "InstalledVersion": "1.0",
+     "FixedVersion": "1.1",
+     "Severity": "HIGH"
+    },
+    {
+     "VulnerabilityID": "CVE-2",
+     "PkgName": "b",
+     "InstalledVersion": "1.0",
+     "FixedVersion": "1.1",
+     "Severity": "HIGH"
+    },
+    {
+     "VulnerabilityID": "CVE-3",
+     "PkgName": "c<&>d",
+     "InstalledVersion": "1.0",
+     "FixedVersion": "1.1",
+     "Severity": "CRITICAL"
+    },
+    {
+     "VulnerabilityID": "CVE-4",
+     "PkgName": "d",
+     "InstalledVersion": "1.0",
+     "FixedVersion": "1.1",
+     "Severity": "HIGH"
+    }
+   ]
+  },
+  {
+   "Target": "t2",
+   "Vulnerabilities": [
+    {
+     "VulnerabilityID": "CVE-5",
+     "PkgName": "e",
+     "InstalledVersion": "1.0",
+     "FixedVersion": "1.1",
+     "Severity": "CRITICAL"
+    },
+    {
+     "VulnerabilityID": "CVE-6",
+     "PkgName": "f",
+     "InstalledVersion": "1.0",
+     "FixedVersion": "1.1",
+     "Severity": "HIGH"
+    },
+    {
+     "VulnerabilityID": "CVE-7",
+     "PkgName": "g",
+     "InstalledVersion": "1.0",
+     "FixedVersion": "1.1",
+     "Severity": "HIGH"
+    }
+   ]
+  }
+ ]
+}

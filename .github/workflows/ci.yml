@@ -19,6 +19,9 @@ jobs:
       - name: Lint GitHub Actions workflows
         uses: rhysd/actionlint@v1.7.12
 
+      - name: Test image-scan notifications
+        run: .github/scripts/image-scan.test.sh
+
   django-checks:
     runs-on: ubuntu-latest
 
