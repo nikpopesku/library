@@ -7,6 +7,9 @@ WORKDIR /app
 
 RUN apt-get update     && apt-get install -y --no-install-recommends libpq5     && rm -rf /var/lib/apt/lists/*
 
+# The app installs via uv into /app/.venv; system pip is unused and ships vulnerable vendored libs.
+RUN python -m pip uninstall -y pip
+
 COPY --from=uv /uv /uvx /usr/local/bin/
 COPY pyproject.toml uv.lock ./
 RUN uv sync --locked --no-dev
