@@ -5,7 +5,7 @@ ENV PYTHONDONTWRITEBYTECODE=1     PYTHONUNBUFFERED=1     UV_COMPILE_BYTECODE=1  
 
 WORKDIR /app
 
-RUN apt-get update     && apt-get install -y --no-install-recommends libpq5     && rm -rf /var/lib/apt/lists/*
+RUN apt-get update     && apt-get upgrade -y --no-install-recommends     && apt-get install -y --no-install-recommends libpq5     && rm -rf /var/lib/apt/lists/*
 
 # The app installs via uv into /app/.venv; system pip is unused and ships vulnerable vendored libs.
 RUN python -m pip uninstall -y pip
