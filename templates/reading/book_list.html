@@ -22,6 +22,7 @@
   <form method="get" action="{% url 'book-list' %}" class="year-filter-form">
     {% if selected_status %}<input type="hidden" name="status" value="{{ selected_status }}">{% endif %}
     {% if selected_language %}<input type="hidden" name="language" value="{{ selected_language }}">{% endif %}
+    {% if selected_author %}<input type="hidden" name="author" value="{{ selected_author }}">{% endif %}
     {% if selected_sort %}<input type="hidden" name="sort" value="{{ selected_sort }}">{% endif %}
     <input type="hidden" name="page_size" value="{{ selected_page_size }}">
     <input type="hidden" name="page" value="1">
@@ -37,6 +38,7 @@
   <form method="get" action="{% url 'book-list' %}" class="language-filter-form">
     {% if selected_status %}<input type="hidden" name="status" value="{{ selected_status }}">{% endif %}
     {% if selected_year %}<input type="hidden" name="year" value="{{ selected_year }}">{% endif %}
+    {% if selected_author %}<input type="hidden" name="author" value="{{ selected_author }}">{% endif %}
     {% if selected_sort %}<input type="hidden" name="sort" value="{{ selected_sort }}">{% endif %}
     <input type="hidden" name="page_size" value="{{ selected_page_size }}">
     <input type="hidden" name="page" value="1">
@@ -48,10 +50,27 @@
     </select>
   </form>
   {% endif %}
+  {% if authors %}
+  <form method="get" action="{% url 'book-list' %}" class="author-filter-form">
+    {% if selected_status %}<input type="hidden" name="status" value="{{ selected_status }}">{% endif %}
+    {% if selected_year %}<input type="hidden" name="year" value="{{ selected_year }}">{% endif %}
+    {% if selected_language %}<input type="hidden" name="language" value="{{ selected_language }}">{% endif %}
+    {% if selected_sort %}<input type="hidden" name="sort" value="{{ selected_sort }}">{% endif %}
+    <input type="hidden" name="page_size" value="{{ selected_page_size }}">
+    <input type="hidden" name="page" value="1">
+    <select name="author" onchange="this.form.submit()" aria-label="Filter by author">
+      <option value="">All authors</option>
+      {% for author in authors %}
+        <option value="{{ author.id }}" {% if selected_author == author.id|stringformat:"s" %}selected{% endif %}>{{ author }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  {% endif %}
   <form method="get" action="{% url 'book-list' %}" class="rating-filter-form">
     {% if selected_status %}<input type="hidden" name="status" value="{{ selected_status }}">{% endif %}
     {% if selected_year %}<input type="hidden" name="year" value="{{ selected_year }}">{% endif %}
     {% if selected_language %}<input type="hidden" name="language" value="{{ selected_language }}">{% endif %}
+    {% if selected_author %}<input type="hidden" name="author" value="{{ selected_author }}">{% endif %}
     {% if selected_sort %}<input type="hidden" name="sort" value="{{ selected_sort }}">{% endif %}
     <input type="hidden" name="page_size" value="{{ selected_page_size }}">
     <input type="hidden" name="page" value="1">
@@ -138,6 +157,7 @@
     {% if selected_status %}<input type="hidden" name="status" value="{{ selected_status }}">{% endif %}
     {% if selected_year %}<input type="hidden" name="year" value="{{ selected_year }}">{% endif %}
     {% if selected_language %}<input type="hidden" name="language" value="{{ selected_language }}">{% endif %}
+    {% if selected_author %}<input type="hidden" name="author" value="{{ selected_author }}">{% endif %}
     {% if selected_sort %}<input type="hidden" name="sort" value="{{ selected_sort }}">{% endif %}
     <label for="page-size">Books per page</label>
     <select id="page-size" name="page_size" onchange="this.form.submit()">

@@ -261,6 +261,69 @@ class BookViewTests(TestCase):
         self.assertContains(response, "Russian")
         self.assertNotContains(response, "The Betrothed")
 
+    def test_user_can_filter_books_by_author(self):
+        tolstoy = Author.objects.create(name="Leo Tolstoy")
+        manzoni = Author.objects.create(name="Alessandro Manzoni")
+        Book.objects.create(title="War and Peace", status=BookStatus.READ, author=tolstoy)
+        Book.objects.create(title="The Betrothed", status=BookStatus.READING, author=manzoni)
+
+        response = self.client.get(reverse("book-list"), {"author": tolstoy.id})
+
+        self.assertContains(response, "War and Peace")
+        self.assertNotContains(response, "The Betrothed")
+        self.assertEqual(response.context["selected_author"], str(tolstoy.id))
+
+    def test_author_filter_combines_with_status_filter(self):
+        tolstoy = Author.objects.create(name="Leo Tolstoy")
+        Book.objects.create(title="War and Peace", status=BookStatus.READ, author=tolstoy)
+        Book.objects.create(title="Anna Karenina", status=BookStatus.READING, author=tolstoy)
+
+        response = self.client.get(
+            reverse("book-list"), {"author": tolstoy.id, "status": BookStatus.READ}
+        )
+
+        self.assertContains(response, "War and Peace")
+        self.assertNotContains(response, "Anna Karenina")
+
+    def test_invalid_or_unknown_author_filter_is_ignored(self):
+        tolstoy = Author.objects.create(name="Leo Tolstoy")
+        Book.objects.create(title="War and Peace", status=BookStatus.READ, author=tolstoy)
+        Book.objects.create(title="No author", status=BookStatus.READ)
+
+        for value in ("abc", "999999"):
+            with self.subTest(value=value):
+                response = self.client.get(reverse("book-list"), {"author": value})
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.context["selected_author"], "")
+                self.assertEqual(len(response.context["books"]), 2)
+
+    def test_author_dropdown_only_lists_authors_with_visible_books(self):
+        visible = Author.objects.create(name="Visible Author")
+        deleted_only = Author.objects.create(name="Deleted Only")
+        Author.objects.create(name="No Books")
+        Book.objects.create(title="Shown", status=BookStatus.READ, author=visible)
+        Book.objects.create(title="Hidden", status=BookStatus.DELETED, author=deleted_only)
+
+        response = self.client.get(reverse("book-list"))
+
+        self.assertEqual(list(response.context["authors"]), [visible])
+
+    def test_other_filter_forms_keep_selected_author(self):
+        tolstoy = Author.objects.create(name="Leo Tolstoy")
+        Book.objects.create(
+            title="War and Peace",
+            status=BookStatus.READ,
+            author=tolstoy,
+            finished_at=date(2024, 1, 1),
+        )
+
+        response = self.client.get(reverse("book-list"), {"author": tolstoy.id})
+
+        self.assertContains(
+            response, f'<input type="hidden" name="author" value="{tolstoy.id}">', count=4
+        )
+
     def test_user_can_filter_and_paginate_books_together(self):
         for index in range(11):
             Book.objects.create(title=f"Reading {index:02d}", status=BookStatus.READING)
