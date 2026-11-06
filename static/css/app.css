@@ -78,9 +78,9 @@ p { line-height: 1.55; }
 .muted, .library-header p { color: #65716b; margin: 0; }
 .filters-bar { align-items: flex-end; border-bottom: 1px solid #d2d9d1; display: flex; justify-content: space-between; margin-bottom: 24px; }
 .filters-bar .tabs { border-bottom: none; flex: 1; margin-bottom: 0; }
-.year-filter-form, .rating-filter-form, .language-filter-form { padding-bottom: 8px; }
-.year-filter-form select, .rating-filter-form select, .language-filter-form select { font-size: 0.85rem; padding: 4px 8px; }
-.language-filter-form select { width: auto; }
+.year-filter-form, .rating-filter-form, .language-filter-form, .author-filter-form { padding-bottom: 8px; }
+.year-filter-form select, .rating-filter-form select, .language-filter-form select, .author-filter-form select { font-size: 0.85rem; padding: 4px 8px; }
+.language-filter-form select, .author-filter-form select { width: auto; }
 .tabs { border-bottom: 1px solid #d2d9d1; display: flex; gap: 8px; margin-bottom: 24px; overflow-x: auto; }
 .tab { border-bottom: 3px solid transparent; color: #46524e; padding: 12px 14px; white-space: nowrap; }
 .tab span { color: #68746e; margin-left: 4px; }

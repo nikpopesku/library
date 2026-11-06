@@ -3,7 +3,7 @@ from django.db.models import Case, Count, F, IntegerField, Q, Value, When
 from django.http import HttpResponseBadRequest
 from django.shortcuts import render
 
-from .models import ACTIVE_BOOK_STATUSES, Book, BookStatus, Language
+from .models import ACTIVE_BOOK_STATUSES, Author, Book, BookStatus, Language
 
 PAGE_SIZE_OPTIONS = (10, 25, 50, 100)
 DEFAULT_PAGE_SIZE = 25
@@ -49,10 +49,35 @@ def _selected_page_size(request):
     return page_size if page_size in PAGE_SIZE_OPTIONS else DEFAULT_PAGE_SIZE
 
 
+def _authors_with_active_books():
+    return Author.objects.filter(books__status__in=ACTIVE_BOOK_STATUSES).distinct().order_by("name")
+
+
+def _apply_language_filter(books, languages, selected_language):
+    return _apply_id_filter(books, languages, selected_language, "language_id")
+
+
+def _apply_author_filter(books, authors, selected_author):
+    return _apply_id_filter(books, authors, selected_author, "author_id")
+
+
+def _apply_id_filter(books, choices, selected_id, field):
+    if not selected_id:
+        return books, ""
+    try:
+        chosen_id = int(selected_id)
+    except ValueError:
+        return books, ""
+    if not choices.filter(id=chosen_id).exists():
+        return books, ""
+    return books.filter(**{field: chosen_id}), selected_id
+
+
 def book_list(request):
     selected_status = request.GET.get("status", "")
     selected_year = request.GET.get("year", "")
     selected_language = request.GET.get("language", "")
+    selected_author = request.GET.get("author", "")
     selected_sort = request.GET.get("sort", "")
 
     base_books = (
@@ -89,16 +114,10 @@ def book_list(request):
             selected_year = ""
 
     languages = Language.objects.order_by("name")
-    if selected_language:
-        try:
-            language_id = int(selected_language)
-        except ValueError:
-            selected_language = ""
-        else:
-            if not languages.filter(id=language_id).exists():
-                selected_language = ""
-            else:
-                books = books.filter(language_id=language_id)
+    books, selected_language = _apply_language_filter(books, languages, selected_language)
+
+    authors = _authors_with_active_books()
+    books, selected_author = _apply_author_filter(books, authors, selected_author)
 
     status_order = Case(
         When(status=BookStatus.WILL_READ, then=Value(0)),
@@ -165,6 +184,8 @@ def book_list(request):
             "selected_year": selected_year,
             "languages": languages,
             "selected_language": selected_language,
+            "authors": authors,
+            "selected_author": selected_author,
             "selected_sort": selected_sort,
             "sort_links": {
                 "title": _sort_link(request, selected_sort, "title"),
