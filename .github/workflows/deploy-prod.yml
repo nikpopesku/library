@@ -242,17 +242,6 @@ jobs:
             docker exec "$web_container" python manage.py migrate --noinput
             docker service ls --filter label=com.docker.stack.namespace=reading
 
-  scan:
-    needs: build-and-deploy
-    permissions:
-      contents: read
-      packages: read
-    uses: ./.github/workflows/scan.yml
-    with:
-      image-ref: ghcr.io/nikpopesku/reading-web:${{ inputs.tag || github.ref_name }}
-      fail-on-findings: false
-    secrets: inherit
-
   release:
     runs-on: ubuntu-latest
     needs: build-and-deploy
