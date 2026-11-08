@@ -127,22 +127,71 @@ class Book(models.Model):
 
     def clean(self):
         super().clean()
+        _validate_uploaded_image(self.cover_image, "cover_image", "Cover")
 
-        if not self.cover_image:
-            return
 
-        if self.cover_image.size > MAX_BOOK_COVER_IMAGE_SIZE_BYTES:
-            raise ValidationError({"cover_image": "Cover images must be 2 MB or smaller."})
+class Movie(models.Model):
+    title = models.CharField(max_length=255)
+    poster = models.FileField(
+        blank=True,
+        null=True,
+        upload_to="movie-posters/",
+        validators=[FileExtensionValidator(["jpg", "jpeg", "png"])],
+        help_text="Upload a JPG or PNG poster up to 2 MB and 1200×1600 pixels.",
+    )
+    language = models.ForeignKey(
+        Language,
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="movies",
+    )
+    watched_at = models.DateField(blank=True, null=True, db_index=True)
+    rating = models.DecimalField(
+        max_digits=3,
+        decimal_places=1,
+        blank=True,
+        null=True,
+        help_text="Use a 1-10 scale, in steps of 0.5",
+        validators=[MinValueValidator(Decimal("1")), MaxValueValidator(Decimal("10"))],
+    )
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-        try:
-            width, height = _read_book_cover_dimensions(self.cover_image)
-        except ValueError as exc:
-            raise ValidationError({"cover_image": "Upload a valid JPG or PNG image."}) from exc
-
-        if width > MAX_BOOK_COVER_IMAGE_WIDTH or height > MAX_BOOK_COVER_IMAGE_HEIGHT:
-            raise ValidationError(
-                {"cover_image": "Cover images must be no larger than 1200×1600 pixels."}
+    class Meta:
+        ordering = ["-watched_at", "title"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(rating__gte=1, rating__lte=10) | models.Q(rating__isnull=True),
+                name="movie_rating_between_1_and_10",
             )
+        ]
+
+    def __str__(self) -> str:
+        return self.title
+
+    def clean(self):
+        super().clean()
+        _validate_uploaded_image(self.poster, "poster", "Poster")
+
+
+def _validate_uploaded_image(image, field_name, noun):
+    if not image:
+        return
+
+    if image.size > MAX_BOOK_COVER_IMAGE_SIZE_BYTES:
+        raise ValidationError({field_name: f"{noun} images must be 2 MB or smaller."})
+
+    try:
+        width, height = _read_book_cover_dimensions(image)
+    except ValueError as exc:
+        raise ValidationError({field_name: "Upload a valid JPG or PNG image."}) from exc
+
+    if width > MAX_BOOK_COVER_IMAGE_WIDTH or height > MAX_BOOK_COVER_IMAGE_HEIGHT:
+        raise ValidationError(
+            {field_name: f"{noun} images must be no larger than 1200×1600 pixels."}
+        )
 
 
 def _read_book_cover_dimensions(uploaded_file):

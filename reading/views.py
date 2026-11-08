@@ -3,7 +3,7 @@ from django.db.models import Case, Count, F, IntegerField, Q, Value, When
 from django.http import HttpResponseBadRequest
 from django.shortcuts import render
 
-from .models import ACTIVE_BOOK_STATUSES, Author, Book, BookStatus, Language
+from .models import ACTIVE_BOOK_STATUSES, Author, Book, BookStatus, Language, Movie
 
 PAGE_SIZE_OPTIONS = (10, 25, 50, 100)
 DEFAULT_PAGE_SIZE = 25
@@ -73,6 +73,73 @@ def _apply_id_filter(books, choices, selected_id, field):
     return books.filter(**{field: chosen_id}), selected_id
 
 
+_BOOK_DEFAULT_SORT = (F("finished_at").desc(nulls_last=True), "title")
+_MOVIE_DEFAULT_SORT = (F("watched_at").desc(nulls_last=True), "title")
+
+
+def _nullable(field, descending=False):
+    expression = F(field).desc(nulls_last=True) if descending else F(field).asc(nulls_last=True)
+    return (expression, "title")
+
+
+def _orderings_both_ways(key, ascending, descending):
+    return {key: ascending, f"-{key}": descending}
+
+
+def _nullable_orderings(key, field):
+    return _orderings_both_ways(key, _nullable(field), _nullable(field, descending=True))
+
+
+def _book_sort_orderings():
+    status_order = Case(
+        When(status=BookStatus.WILL_READ, then=Value(0)),
+        When(status=BookStatus.READING, then=Value(1)),
+        When(status=BookStatus.READ, then=Value(2)),
+        output_field=IntegerField(),
+    )
+    return {
+        **_orderings_both_ways("title", ("title",), ("-title",)),
+        **_nullable_orderings("author", "author__name"),
+        **_nullable_orderings("language", "language__name"),
+        **_orderings_both_ways("status", (status_order, "title"), (status_order.desc(), "title")),
+        **_nullable_orderings("started_at", "started_at"),
+        **_nullable_orderings("finished_at", "finished_at"),
+        **_nullable_orderings("rating", "rating"),
+    }
+
+
+def _movie_sort_orderings():
+    return {
+        **_orderings_both_ways("title", ("title",), ("-title",)),
+        **_nullable_orderings("language", "language__name"),
+        **_nullable_orderings("watched_at", "watched_at"),
+        **_nullable_orderings("rating", "rating"),
+    }
+
+
+def _apply_sort(queryset, selected_sort, orderings, default):
+    return queryset.order_by(*orderings.get(selected_sort, default))
+
+
+def _preserved_params(**selected):
+    return [(name, value) for name, value in selected.items() if value]
+
+
+def _available_years(queryset, field):
+    dates = queryset.filter(**{f"{field}__isnull": False}).dates(field, "year", order="DESC")
+    return [d.year for d in dates]
+
+
+def _apply_year_filter(items, years, selected_year, field):
+    try:
+        year = int(selected_year)
+    except ValueError:
+        return items, ""
+    if year not in years:
+        return items, ""
+    return items.filter(**{f"{field}__year": year}), selected_year
+
+
 def book_list(request):
     selected_status = request.GET.get("status", "")
     selected_year = request.GET.get("year", "")
@@ -119,43 +186,7 @@ def book_list(request):
     authors = _authors_with_active_books()
     books, selected_author = _apply_author_filter(books, authors, selected_author)
 
-    status_order = Case(
-        When(status=BookStatus.WILL_READ, then=Value(0)),
-        When(status=BookStatus.READING, then=Value(1)),
-        When(status=BookStatus.READ, then=Value(2)),
-        output_field=IntegerField(),
-    )
-
-    if selected_sort == "title":
-        books = books.order_by("title")
-    elif selected_sort == "-title":
-        books = books.order_by("-title")
-    elif selected_sort == "author":
-        books = books.order_by(F("author__name").asc(nulls_last=True), "title")
-    elif selected_sort == "-author":
-        books = books.order_by(F("author__name").desc(nulls_last=True), "title")
-    elif selected_sort == "language":
-        books = books.order_by(F("language__name").asc(nulls_last=True), "title")
-    elif selected_sort == "-language":
-        books = books.order_by(F("language__name").desc(nulls_last=True), "title")
-    elif selected_sort == "status":
-        books = books.order_by(status_order, "title")
-    elif selected_sort == "-status":
-        books = books.order_by(status_order.desc(), "title")
-    elif selected_sort == "started_at":
-        books = books.order_by(F("started_at").asc(nulls_last=True), "title")
-    elif selected_sort == "-started_at":
-        books = books.order_by(F("started_at").desc(nulls_last=True), "title")
-    elif selected_sort == "finished_at":
-        books = books.order_by(F("finished_at").asc(nulls_last=True), "title")
-    elif selected_sort == "-finished_at":
-        books = books.order_by(F("finished_at").desc(nulls_last=True), "title")
-    elif selected_sort == "rating":
-        books = books.order_by(F("rating").asc(nulls_last=True), "title")
-    elif selected_sort == "-rating":
-        books = books.order_by(F("rating").desc(nulls_last=True), "title")
-    else:
-        books = books.order_by(F("finished_at").desc(nulls_last=True), "title")
+    books = _apply_sort(books, selected_sort, _book_sort_orderings(), _BOOK_DEFAULT_SORT)
 
     counts_by_status = {
         row["status"]: row["total"]
@@ -179,6 +210,13 @@ def book_list(request):
             "is_paginated": page_obj.has_other_pages(),
             "page_sizes": PAGE_SIZE_OPTIONS,
             "selected_page_size": page_size,
+            "preserved_params": _preserved_params(
+                status=selected_status,
+                year=selected_year,
+                language=selected_language,
+                author=selected_author,
+                sort=selected_sort,
+            ),
             "statuses": ACTIVE_BOOK_STATUSES,
             "selected_status": selected_status,
             "selected_year": selected_year,
@@ -200,5 +238,51 @@ def book_list(request):
             "counts": counts,
             "total_count": books.count(),
             "all_count": base_books.count(),
+        },
+    )
+
+
+def movie_list(request):
+    selected_year = request.GET.get("year", "")
+    selected_language = request.GET.get("language", "")
+    selected_sort = request.GET.get("sort", "")
+
+    base_movies = Movie.objects.select_related("language")
+    years = _available_years(base_movies, "watched_at")
+    movies, selected_year = _apply_year_filter(base_movies, years, selected_year, "watched_at")
+
+    languages = Language.objects.filter(movies__isnull=False).distinct().order_by("name")
+    movies, selected_language = _apply_id_filter(
+        movies, languages, selected_language, "language_id"
+    )
+    movies = _apply_sort(movies, selected_sort, _movie_sort_orderings(), _MOVIE_DEFAULT_SORT)
+
+    page_size = _selected_page_size(request)
+    paginator = Paginator(movies, page_size)
+    page_obj = paginator.get_page(request.GET.get("page", 1))
+
+    return render(
+        request,
+        "reading/movie_list.html",
+        {
+            "movies": page_obj.object_list,
+            "page_obj": page_obj,
+            "page_range": paginator.get_elided_page_range(page_obj.number),
+            "is_paginated": page_obj.has_other_pages(),
+            "page_sizes": PAGE_SIZE_OPTIONS,
+            "selected_page_size": page_size,
+            "preserved_params": _preserved_params(
+                year=selected_year, language=selected_language, sort=selected_sort
+            ),
+            "years": years,
+            "selected_year": selected_year,
+            "languages": languages,
+            "selected_language": selected_language,
+            "selected_sort": selected_sort,
+            "sort_links": {
+                key: _sort_link(request, selected_sort, key)
+                for key in ("title", "language", "watched_at", "rating")
+            },
+            "total_count": movies.count(),
         },
     )

@@ -4,7 +4,7 @@ from difflib import SequenceMatcher
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import ACTIVE_BOOK_STATUSES, Author, Book
+from .models import ACTIVE_BOOK_STATUSES, Author, Book, Movie
 
 
 def normalize_author_name(value):
@@ -105,3 +105,15 @@ class BookForm(forms.ModelForm):
         self.fields["status"].choices = [
             (status.value, status.label) for status in ACTIVE_BOOK_STATUSES
         ]
+
+
+class MovieForm(forms.ModelForm):
+    class Meta:
+        model = Movie
+        fields = ["title", "poster", "language", "watched_at", "rating", "notes"]
+        widgets = {
+            "poster": forms.ClearableFileInput(attrs={"accept": "image/jpeg,image/png"}),
+            "watched_at": forms.DateInput(attrs={"type": "date"}),
+            "rating": forms.NumberInput(attrs={"step": "0.5", "min": "1", "max": "10"}),
+            "notes": forms.Textarea(attrs={"rows": 5}),
+        }

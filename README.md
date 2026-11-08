@@ -1,6 +1,7 @@
-# Reading
+# Library
 
-Personal reading tracker for books that are planned, in progress, or finished.
+Personal library: a reading tracker for books that are planned, in progress, or finished,
+and a log of movies watched. The left menu switches between Reading (default) and Movies.
 
 **Live:** <https://reading.run24.top>
 

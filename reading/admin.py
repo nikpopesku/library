@@ -2,8 +2,22 @@ from django.contrib import admin
 from django.db.models import Count, F
 from django.utils.html import format_html
 
-from .forms import AuthorForm, BookForm
-from .models import Author, Book, Language, Tag
+from .forms import AuthorForm, BookForm, MovieForm
+from .models import Author, Book, Language, Movie, Tag
+
+
+def _thumbnail(image, noun, title):
+    if not image:
+        return "—"
+    return format_html(
+        (
+            '<img src="{}" alt="{} for {}" '
+            'style="width: 36px; height: 54px; object-fit: cover; border-radius: 4px;" />'
+        ),
+        image.url,
+        noun,
+        title,
+    )
 
 
 @admin.register(Book)
@@ -26,16 +40,21 @@ class BookAdmin(admin.ModelAdmin):
 
     @admin.display(description="Cover")
     def cover_thumbnail(self, obj):
-        if not obj.cover_image:
-            return "—"
-        return format_html(
-            (
-                '<img src="{}" alt="Cover for {}" '
-                'style="width: 36px; height: 54px; object-fit: cover; border-radius: 4px;" />'
-            ),
-            obj.cover_image.url,
-            obj.title,
-        )
+        return _thumbnail(obj.cover_image, "Cover", obj.title)
+
+
+@admin.register(Movie)
+class MovieAdmin(admin.ModelAdmin):
+    form = MovieForm
+    list_display = ("poster_thumbnail", "title", "language", "watched_at", "rating")
+    list_filter = ("watched_at", "language", "rating")
+    search_fields = ("title", "notes", "language__name")
+    ordering = (F("watched_at").desc(nulls_last=True), "title")
+    autocomplete_fields = ("language",)
+
+    @admin.display(description="Poster")
+    def poster_thumbnail(self, obj):
+        return _thumbnail(obj.poster, "Poster", obj.title)
 
 
 @admin.register(Author)
@@ -73,13 +92,24 @@ class TagAdmin(admin.ModelAdmin):
 
 @admin.register(Language)
 class LanguageAdmin(admin.ModelAdmin):
-    list_display = ("name", "book_count")
+    list_display = ("name", "book_count", "movie_count")
     search_fields = ("name",)
     ordering = ("name",)
 
     def get_queryset(self, request):
-        return super().get_queryset(request).annotate(books_total=Count("books", distinct=True))
+        return (
+            super()
+            .get_queryset(request)
+            .annotate(
+                books_total=Count("books", distinct=True),
+                movies_total=Count("movies", distinct=True),
+            )
+        )
 
     @admin.display(description="Books", ordering="books_total")
     def book_count(self, obj):
         return obj.books_total
+
+    @admin.display(description="Movies", ordering="movies_total")
+    def movie_count(self, obj):
+        return obj.movies_total

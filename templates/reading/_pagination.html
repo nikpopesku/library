@@ -1,0 +1,42 @@
+{% load book_extras %}
+<section class="pagination-bar" aria-label="{{ item_label|capfirst }} pagination controls">
+  <form method="get" action="{{ request.path }}" class="page-size-form">
+    {% for name, value in preserved_params %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+    <label for="page-size">{{ item_label|capfirst }} per page</label>
+    <select id="page-size" name="page_size" onchange="this.form.submit()">
+      {% for size in page_sizes %}
+        <option value="{{ size }}" {% if selected_page_size == size %}selected{% endif %}>{{ size }}</option>
+      {% endfor %}
+    </select>
+    <input type="hidden" name="page" value="1">
+  </form>
+
+  {% if is_paginated %}
+    <div class="pagination-summary">{{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ total_count }}</div>
+    <nav class="pagination-nav" aria-label="Pagination">
+      {% if page_obj.has_previous %}
+        <a class="pagination-link" href="{{ request.path }}{% querystring page=page_obj.previous_page_number %}">Previous</a>
+      {% else %}
+        <span class="pagination-link disabled">Previous</span>
+      {% endif %}
+
+      <div class="pagination-pages">
+        {% for page_number in page_range %}
+          {% if page_number == page_obj.paginator.ELLIPSIS %}
+            <span class="pagination-ellipsis">{{ page_number }}</span>
+          {% elif page_number == page_obj.number %}
+            <span class="pagination-link current" aria-current="page">{{ page_number }}</span>
+          {% else %}
+            <a class="pagination-link" href="{{ request.path }}{% querystring page=page_number %}">{{ page_number }}</a>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      {% if page_obj.has_next %}
+        <a class="pagination-link" href="{{ request.path }}{% querystring page=page_obj.next_page_number %}">Next</a>
+      {% else %}
+        <span class="pagination-link disabled">Next</span>
+      {% endif %}
+    </nav>
+  {% endif %}
+</section>
