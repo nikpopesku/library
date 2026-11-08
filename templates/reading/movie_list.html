@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load book_extras %}
+
+{% block title %}Movies - Library{% endblock %}
+
+{% block content %}
+<section class="library-header">
+  <div>
+    <h1>Movies</h1>
+    <p>{{ total_count }} movie{{ total_count|pluralize }}</p>
+  </div>
+</section>
+
+<div class="filters-bar">
+  {% if years %}
+  <form method="get" action="{% url 'movie-list' %}" class="year-filter-form">
+    {% if selected_language %}<input type="hidden" name="language" value="{{ selected_language }}">{% endif %}
+    {% if selected_sort %}<input type="hidden" name="sort" value="{{ selected_sort }}">{% endif %}
+    <input type="hidden" name="page_size" value="{{ selected_page_size }}">
+    <input type="hidden" name="page" value="1">
+    <select name="year" onchange="this.form.submit()" aria-label="Filter by year watched">
+      <option value="">All years</option>
+      {% for year in years %}
+        <option value="{{ year }}" {% if selected_year == year|stringformat:"s" %}selected{% endif %}>{{ year }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  {% endif %}
+  {% if languages %}
+  <form method="get" action="{% url 'movie-list' %}" class="language-filter-form">
+    {% if selected_year %}<input type="hidden" name="year" value="{{ selected_year }}">{% endif %}
+    {% if selected_sort %}<input type="hidden" name="sort" value="{{ selected_sort }}">{% endif %}
+    <input type="hidden" name="page_size" value="{{ selected_page_size }}">
+    <input type="hidden" name="page" value="1">
+    <select name="language" onchange="this.form.submit()" aria-label="Filter by language">
+      <option value="">All languages</option>
+      {% for language in languages %}
+        <option value="{{ language.id }}" {% if selected_language == language.id|stringformat:"s" %}selected{% endif %}>{{ language }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  {% endif %}
+</div>
+
+<section class="table-wrap">
+  <table class="book-table">
+    <thead>
+      <tr>
+        <th>Poster</th>
+        <th aria-sort="{{ sort_links.title.aria_sort }}">
+          <a class="sort-link {% if sort_links.title.is_active %}active{% endif %}" href="{{ sort_links.title.url }}">Title <span aria-hidden="true">{{ sort_links.title.direction }}</span></a>
+        </th>
+        <th aria-sort="{{ sort_links.language.aria_sort }}">
+          <a class="sort-link {% if sort_links.language.is_active %}active{% endif %}" href="{{ sort_links.language.url }}">Language <span aria-hidden="true">{{ sort_links.language.direction }}</span></a>
+        </th>
+        <th aria-sort="{{ sort_links.watched_at.aria_sort }}">
+          <a class="sort-link {% if sort_links.watched_at.is_active %}active{% endif %}" href="{{ sort_links.watched_at.url }}">Watched <span aria-hidden="true">{{ sort_links.watched_at.direction }}</span></a>
+        </th>
+        <th aria-sort="{{ sort_links.rating.aria_sort }}">
+          <a class="sort-link {% if sort_links.rating.is_active %}active{% endif %}" href="{{ sort_links.rating.url }}">Rating <span aria-hidden="true">{{ sort_links.rating.direction }}</span></a>
+        </th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for movie in movies %}
+        <tr>
+          <td class="cell-cover" data-label="Poster">
+            {% if movie.poster %}
+              <img class="book-cover-thumb" src="{{ movie.poster.url }}" alt="Poster for {{ movie.title }}" loading="lazy">
+            {% else %}
+              <span class="book-cover-placeholder" aria-hidden="true">—</span>
+            {% endif %}
+          </td>
+          <td class="cell-title" data-label="Title">{{ movie.title }}</td>
+          <td class="cell-language" data-label="Language">{{ movie.language|default:"-" }}</td>
+          <td class="cell-finished" data-label="Watched">{{ movie.watched_at|default:"-" }}</td>
+          <td class="cell-rating" data-label="Rating">{% if movie.rating %}{{ movie.rating }}/10{% else %}-{% endif %}</td>
+          <td class="cell-notes" data-label="Notes">{{ movie.notes|default:"-"|linebreaksbr }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="6" class="empty-cell">No movies yet.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% include "reading/_pagination.html" with item_label="movies" %}
+{% endblock %}

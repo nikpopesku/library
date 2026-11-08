@@ -76,7 +76,7 @@ class BrandTemplateTests(SimpleTestCase):
         self.assertEqual(markup.logos[0]["height"], "32")
         self.assertEqual(markup.logos[0]["alt"], "")
         self.assertEqual(markup.home_links[0]["href"], reverse("book-list"))
-        self.assertIn("<span>Reading</span>", render_to_string("base.html"))
+        self.assertIn("<span>Library</span>", render_to_string("base.html"))
 
     def test_login_inherits_the_same_brand(self):
         markup = self._markup("registration/login.html")
@@ -110,4 +110,4 @@ class HomepageBrandTests(TestCase):
         response = self.client.get(reverse("book-list"))
         self.assertContains(response, 'class="brand__logo"')
         self.assertContains(response, static(BRAND_ASSET), count=2)
-        self.assertContains(response, "<h1>Library</h1>", html=True)
+        self.assertContains(response, "<h1>Books</h1>", html=True)
