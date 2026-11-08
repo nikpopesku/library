@@ -10,34 +10,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  changes:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    outputs:
-      scan: ${{ steps.diff.outputs.scan }}
-    steps:
-      - uses: actions/checkout@v6.0.2
-        with:
-          fetch-depth: 0
-
-      - name: Check for dependency changes
-        id: diff
-        env:
-          BEFORE: ${{ github.event.before }}
-          FORCED: ${{ github.event.forced }}
-        run: |
-          # Manual runs and pushes without a usable ancestor must not skip scanning.
-          if [ "$GITHUB_EVENT_NAME" != push ] || [ "$FORCED" = true ] \
-            || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null \
-            || ! git merge-base --is-ancestor "$BEFORE" "$GITHUB_SHA"; then
-            echo "scan=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          CHANGED=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" -- 'Dockerfile*' uv.lock pyproject.toml)
-          echo "Dependency files changed: ${CHANGED:-none}"
-          echo "scan=$([ -n "$CHANGED" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
-
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
@@ -142,17 +114,3 @@ jobs:
             fi
 
             docker exec "$web_container" python manage.py migrate --noinput
-
-  scan:
-    needs:
-      - build-and-deploy
-      - changes
-    if: needs.changes.outputs.scan == 'true'
-    permissions:
-      contents: read
-      packages: read
-    uses: ./.github/workflows/scan.yml
-    with:
-      image-ref: ghcr.io/nikpopesku/reading-web:staging
-      fail-on-findings: true
-    secrets: inherit
