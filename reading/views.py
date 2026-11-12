@@ -110,7 +110,6 @@ def _book_sort_orderings():
 
 def _movie_sort_orderings():
     return {
-        **_nullable_orderings("release_year", "release_year"),
         **_orderings_both_ways("title", ("title",), ("-title",)),
         **_nullable_orderings("language", "language__name"),
         **_nullable_orderings("watched_at", "watched_at"),
@@ -282,7 +281,7 @@ def movie_list(request):
             "selected_sort": selected_sort,
             "sort_links": {
                 key: _sort_link(request, selected_sort, key)
-                for key in ("title", "release_year", "language", "watched_at", "rating")
+                for key in ("title", "language", "watched_at", "rating")
             },
             "total_count": movies.count(),
         },

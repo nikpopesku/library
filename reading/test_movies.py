@@ -225,43 +225,17 @@ class MovieReleaseYearTests(TestCase):
         self.assertTrue(cleared.is_valid(), cleared.errors)
         self.assertIsNone(cleared.save().release_year)
 
-    def test_public_column_and_missing_year_placeholder(self):
+    def test_release_year_is_part_of_title_without_a_separate_column(self):
         Movie.objects.create(title="Stalker", release_year=1979)
         Movie.objects.create(title="Unknown")
         response = self.client.get(reverse("movie-list"))
-        self.assertContains(response, 'data-label="Year">1979</td>')
-        self.assertContains(response, 'data-label="Year">-</td>')
-        self.assertContains(response, "sort=release_year")
-
-    def test_year_sort_keeps_unknown_years_last_and_breaks_ties_by_title(self):
-        for title, year in (("Unknown", None), ("New", 2019), ("B", 1979), ("A", 1979)):
-            Movie.objects.create(title=title, release_year=year)
-        for sort, expected in (
-            ("release_year", ["A", "B", "New", "Unknown"]),
-            ("-release_year", ["New", "A", "B", "Unknown"]),
-        ):
-            with self.subTest(sort=sort):
-                response = self.client.get(reverse("movie-list"), {"sort": sort})
-                self.assertEqual(titles(response), expected)
-
-    def test_sort_link_toggles_and_preserves_watched_year_and_language(self):
-        language = Language.objects.create(name="Test language")
-        Movie.objects.create(title="Film", language=language, watched_at=date(2024, 1, 1))
-        response = self.client.get(
-            reverse("movie-list"),
-            {
-                "sort": "release_year",
-                "year": "2024",
-                "language": language.pk,
-                "page": 2,
-            },
+        self.assertContains(response, '<span class="movie-release-year">1979</span>', html=True)
+        self.assertContains(
+            response, '<td class="cell-title" data-label="Title">Unknown</td>', html=True
         )
-        link = response.context["sort_links"]["release_year"]
-        self.assertEqual(link["aria_sort"], "ascending")
-        self.assertIn("sort=-release_year", link["url"])
-        self.assertIn("year=2024", link["url"])
-        self.assertIn(f"language={language.pk}", link["url"])
-        self.assertNotIn("page=2", link["url"])
+        self.assertNotContains(response, 'data-label="Year"')
+        self.assertNotContains(response, "sort=release_year")
+        self.assertNotIn("release_year", response.context["sort_links"])
 
     def test_admin_can_display_filter_and_search_years(self):
         user = get_user_model().objects.create_superuser(username="year-admin", password="test")

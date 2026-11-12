@@ -50,9 +50,6 @@
         <th aria-sort="{{ sort_links.title.aria_sort }}">
           <a class="sort-link {% if sort_links.title.is_active %}active{% endif %}" href="{{ sort_links.title.url }}">Title <span aria-hidden="true">{{ sort_links.title.direction }}</span></a>
         </th>
-        <th aria-sort="{{ sort_links.release_year.aria_sort }}">
-          <a class="sort-link {% if sort_links.release_year.is_active %}active{% endif %}" href="{{ sort_links.release_year.url }}">Year <span aria-hidden="true">{{ sort_links.release_year.direction }}</span></a>
-        </th>
         <th aria-sort="{{ sort_links.language.aria_sort }}">
           <a class="sort-link {% if sort_links.language.is_active %}active{% endif %}" href="{{ sort_links.language.url }}">Language <span aria-hidden="true">{{ sort_links.language.direction }}</span></a>
         </th>
@@ -76,8 +73,10 @@
               <span class="book-cover-placeholder" aria-hidden="true">—</span>
             {% endif %}
           </td>
-          <td class="cell-title" data-label="Title">{{ movie.title }}</td>
-          <td class="cell-year" data-label="Year">{{ movie.release_year|default_if_none:"-" }}</td>
+          <td class="cell-title" data-label="Title">
+            {{ movie.title }}
+            {% if movie.release_year %}<span class="movie-release-year">{{ movie.release_year }}</span>{% endif %}
+          </td>
           <td class="cell-language" data-label="Language">{{ movie.language|default:"-" }}</td>
           <td class="cell-finished" data-label="Watched">{{ movie.watched_at|default:"-" }}</td>
           <td class="cell-rating" data-label="Rating">{% if movie.rating %}{{ movie.rating }}/10{% else %}-{% endif %}</td>
@@ -92,7 +91,7 @@
         </tr>
       {% empty %}
         <tr>
-          <td colspan="8" class="empty-cell">No movies yet.</td>
+          <td colspan="7" class="empty-cell">No movies yet.</td>
         </tr>
       {% endfor %}
     </tbody>
