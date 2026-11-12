@@ -229,7 +229,7 @@ class MovieReleaseYearTests(TestCase):
         Movie.objects.create(title="Stalker", release_year=1979)
         Movie.objects.create(title="Unknown")
         response = self.client.get(reverse("movie-list"))
-        self.assertContains(response, '<span class="movie-release-year">1979</span>', html=True)
+        self.assertContains(response, '<div class="movie-release-year">1979</div>', html=True)
         self.assertContains(
             response, '<td class="cell-title" data-label="Title">Unknown</td>', html=True
         )
