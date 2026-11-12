@@ -1,6 +1,7 @@
 from datetime import date
 from decimal import Decimal
 from io import StringIO
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -10,6 +11,7 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
 
+from .forms import MovieForm
 from .models import (
     MAX_BOOK_COVER_IMAGE_HEIGHT,
     MAX_BOOK_COVER_IMAGE_SIZE_BYTES,
@@ -189,3 +191,78 @@ class SeedExampleMoviesTests(TestCase):
 
         self.assertGreater(first_count, 0)
         self.assertEqual(Movie.objects.count(), first_count)
+
+
+class MovieReleaseYearTests(TestCase):
+    def test_model_accepts_blank_and_boundary_years(self):
+        for year in (None, 1888, date.today().year + 1):
+            with self.subTest(year=year):
+                Movie(title="Film", release_year=year).full_clean()
+
+    def test_model_and_form_reject_out_of_range_years(self):
+        for year in (-1, 0, 1887, date.today().year + 2):
+            with self.subTest(year=year):
+                with self.assertRaises(ValidationError) as error:
+                    Movie(title="Film", release_year=year).full_clean()
+                self.assertIn("release_year", error.exception.message_dict)
+                form = MovieForm(data={"title": "Film", "release_year": year})
+                self.assertFalse(form.is_valid())
+                self.assertIn("release_year", form.errors)
+
+    def test_upper_bound_advances_without_restarting(self):
+        with patch("reading.models.date") as clock:
+            clock.today.return_value = date(2030, 1, 1)
+            Movie(title="Future film", release_year=2031).full_clean()
+            with self.assertRaises(ValidationError):
+                Movie(title="Future film", release_year=2032).full_clean()
+
+    def test_form_saves_year_and_allows_clearing_it(self):
+        form = MovieForm(data={"title": "Stalker", "release_year": 1979})
+        self.assertTrue(form.is_valid(), form.errors)
+        movie = form.save()
+        self.assertEqual(movie.release_year, 1979)
+        cleared = MovieForm(data={"title": "Stalker", "release_year": ""}, instance=movie)
+        self.assertTrue(cleared.is_valid(), cleared.errors)
+        self.assertIsNone(cleared.save().release_year)
+
+    def test_release_year_is_part_of_title_without_a_separate_column(self):
+        Movie.objects.create(title="Stalker", release_year=1979)
+        Movie.objects.create(title="Unknown")
+        response = self.client.get(reverse("movie-list"))
+        self.assertContains(response, '<div class="movie-release-year">1979</div>', html=True)
+        self.assertContains(
+            response, '<td class="cell-title" data-label="Title">Unknown</td>', html=True
+        )
+        self.assertNotContains(response, 'data-label="Year"')
+        self.assertNotContains(response, "sort=release_year")
+        self.assertNotIn("release_year", response.context["sort_links"])
+
+    def test_admin_can_display_filter_and_search_years(self):
+        user = get_user_model().objects.create_superuser(username="year-admin", password="test")
+        self.client.force_login(user)
+        Movie.objects.create(title="Stalker", release_year=1979)
+        Movie.objects.create(title="Parasite", release_year=2019)
+        url = reverse("admin:books_movie_changelist")
+        for params in ({"q": "1979"}, {"release_year": "1979"}, {"q": "Stalker"}):
+            with self.subTest(params=params):
+                response = self.client.get(url, params)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "Stalker")
+                self.assertNotContains(response, "Parasite")
+                self.assertContains(response, "column-release_year")
+
+    def test_seed_populates_years_and_backfills_without_overwriting_existing_data(self):
+        existing = Movie.objects.create(title="Stalker", notes="Keep my notes", rating=7)
+        custom = Movie.objects.create(title="Parasite", release_year=2020)
+        for _ in range(2):
+            call_command("seed_example_movies", stdout=StringIO())
+        existing.refresh_from_db()
+        custom.refresh_from_db()
+        self.assertEqual(existing.release_year, 1979)
+        self.assertEqual(existing.notes, "Keep my notes")
+        self.assertEqual(existing.rating, 7)
+        self.assertIsNone(existing.watched_at)
+        self.assertEqual(custom.release_year, 2020)
+        self.assertEqual(Movie.objects.count(), 7)
+        self.assertEqual(Movie.objects.get(title="Cinema Paradiso").release_year, 1988)
+        self.assertFalse(Movie.objects.filter(release_year__isnull=True).exists())

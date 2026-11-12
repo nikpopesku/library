@@ -73,7 +73,10 @@
               <span class="book-cover-placeholder" aria-hidden="true">—</span>
             {% endif %}
           </td>
-          <td class="cell-title" data-label="Title">{{ movie.title }}</td>
+          <td class="cell-title" data-label="Title">
+            {{ movie.title }}
+            {% if movie.release_year %}<div class="movie-release-year">{{ movie.release_year }}</div>{% endif %}
+          </td>
           <td class="cell-language" data-label="Language">{{ movie.language|default:"-" }}</td>
           <td class="cell-finished" data-label="Watched">{{ movie.watched_at|default:"-" }}</td>
           <td class="cell-rating" data-label="Rating">{% if movie.rating %}{{ movie.rating }}/10{% else %}-{% endif %}</td>
