@@ -59,6 +59,7 @@
         <th aria-sort="{{ sort_links.rating.aria_sort }}">
           <a class="sort-link {% if sort_links.rating.is_active %}active{% endif %}" href="{{ sort_links.rating.url }}">Rating <span aria-hidden="true">{{ sort_links.rating.direction }}</span></a>
         </th>
+        <th>Actors</th>
         <th>Notes</th>
       </tr>
     </thead>
@@ -76,11 +77,18 @@
           <td class="cell-language" data-label="Language">{{ movie.language|default:"-" }}</td>
           <td class="cell-finished" data-label="Watched">{{ movie.watched_at|default:"-" }}</td>
           <td class="cell-rating" data-label="Rating">{% if movie.rating %}{{ movie.rating }}/10{% else %}-{% endif %}</td>
+          <td class="cell-tags" data-label="Actors">
+            {% for actor in movie.actors.all %}
+              <span class="tag-pill">{{ actor }}</span>
+            {% empty %}
+              -
+            {% endfor %}
+          </td>
           <td class="cell-notes" data-label="Notes">{{ movie.notes|default:"-"|linebreaksbr }}</td>
         </tr>
       {% empty %}
         <tr>
-          <td colspan="6" class="empty-cell">No movies yet.</td>
+          <td colspan="7" class="empty-cell">No movies yet.</td>
         </tr>
       {% endfor %}
     </tbody>

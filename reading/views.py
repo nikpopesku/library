@@ -247,7 +247,7 @@ def movie_list(request):
     selected_language = request.GET.get("language", "")
     selected_sort = request.GET.get("sort", "")
 
-    base_movies = Movie.objects.select_related("language")
+    base_movies = Movie.objects.select_related("language").prefetch_related("actors")
     years = _available_years(base_movies, "watched_at")
     movies, selected_year = _apply_year_filter(base_movies, years, selected_year, "watched_at")
 
