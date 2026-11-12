@@ -121,7 +121,7 @@ wheels = [
 ]
 
 [[package]]
-name = "reading"
+name = "library"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
