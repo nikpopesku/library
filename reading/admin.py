@@ -3,7 +3,7 @@ from django.db.models import Count, F
 from django.utils.html import format_html
 
 from .forms import AuthorForm, BookForm, MovieForm
-from .models import Author, Book, Language, Movie, Tag
+from .models import Actor, Author, Book, Language, Movie, Tag
 
 
 def _thumbnail(image, noun, title):
@@ -48,13 +48,20 @@ class MovieAdmin(admin.ModelAdmin):
     form = MovieForm
     list_display = ("poster_thumbnail", "title", "language", "watched_at", "rating")
     list_filter = ("watched_at", "language", "rating")
-    search_fields = ("title", "notes", "language__name")
+    search_fields = ("title", "notes", "language__name", "actors__name")
     ordering = (F("watched_at").desc(nulls_last=True), "title")
-    autocomplete_fields = ("language",)
+    autocomplete_fields = ("language", "actors")
 
     @admin.display(description="Poster")
     def poster_thumbnail(self, obj):
         return _thumbnail(obj.poster, "Poster", obj.title)
+
+
+@admin.register(Actor)
+class ActorAdmin(admin.ModelAdmin):
+    list_display = ("name",)
+    search_fields = ("name",)
+    ordering = ("name",)
 
 
 @admin.register(Author)

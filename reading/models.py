@@ -130,8 +130,19 @@ class Book(models.Model):
         _validate_uploaded_image(self.cover_image, "cover_image", "Cover")
 
 
+class Actor(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Movie(models.Model):
     title = models.CharField(max_length=255)
+    actors = models.ManyToManyField(Actor, related_name="movies", blank=True)
     poster = models.FileField(
         blank=True,
         null=True,
