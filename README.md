@@ -5,7 +5,7 @@ and a log of movies watched. The left menu switches between Reading (default) an
 
 **Repository:** <https://github.com/nikpopesku/library>
 
-**Live:** <https://reading.run24.top>
+**Live after hostname rollout:** <https://library.run24.top> (formerly `reading.run24.top`)
 
 ## Stack
 
@@ -34,7 +34,7 @@ make migrate
 make createsuperuser
 ```
 
-Open `https://readinglocal.a007.bid`.
+Open `https://librarylocal.a007.bid`. The former `readinglocal.a007.bid` address redirects here.
 
 ## Orion
 
@@ -103,10 +103,39 @@ volumes and can create parallel routers. Their migration requires a coordinated 
 monitoring cutover rather than text replacement. Django modules (`reading`, `reading_project`)
 and migration labels also remain stable. The uv project metadata is named `library`.
 
-Public and local hostnames keep their current names until the separate domain task.
+Production is `library.run24.top`. Staging is `library.a007.bid` and local
+development is `librarylocal.a007.bid`; their former Reading addresses redirect permanently
+with paths and query strings preserved. The former production hostname redirects too.
+Orion keeps its hostname. Buying an entirely new production domain remains a separate task.
 
 After renaming GitHub, verify the repository ID, Actions secret names, `prod` environment,
 branch protection/rulesets, and package access. Run CI and dispatch the staging workflow on
 the RD-42 branch before merging; confirm Sirius serves the new image. Slack release and
 security webhook secrets remain attached to the same repository; their next normal runs
 verify delivery without sending a synthetic release notification.
+
+### Production, staging and local hostname rollout
+
+1. In Cloudflare, create `library.run24.top` with the same origin/proxy settings as
+   `reading.run24.top`. Create `library.a007.bid` with the same origin/proxy settings as
+   `reading.a007.bid`, and `librarylocal.a007.bid` with the same DNS-only local target as
+   `readinglocal.a007.bid`. Keep all old records.
+2. Add `library.a007.bid` to the existing staging Access application with the same policies
+   and monitoring service-token access. Add it to the staging origin-auth Transform Rule.
+   Copy production admin Access applications/path coverage to `library.run24.top` and
+   preserve the public production pages. Preserve each old hostname's Access protection
+   and origin-auth coverage too. Apply any WARP/device requirements only after confirming
+   the intended access policy and maintaining monitoring service-token access.
+3. Merge/deploy the Traefik PR adding the new staging and production hosts to origin protection. Run its
+   certificate workflow to issue the local certificate with both Reading and Library SANs;
+   pull those certificate changes into the local Traefik checkout and reload Traefik.
+4. Deploy this app change after DNS, Access, origin protection and certificates are ready.
+   Old HTTPS production/staging/local addresses then redirect to Library at Traefik. DNS itself does
+   not redirect URLs; do not add an edge redirect that could skip Access protection.
+5. Merge monitoring after both new staging and production hostnames are live. Verify old/new TLS, canonical
+   URLs, path/query preservation, login and a form submission. Existing sessions may need a
+   fresh login on the new hostname because cookies belong to the previous hostname.
+
+Keep the Swarm/Compose project names, volumes and database identities unchanged. Orion's
+`readingorion.a007.bid` stays outside this hostname change. Production is released only
+from a user-created `v*` tag after staging passes.

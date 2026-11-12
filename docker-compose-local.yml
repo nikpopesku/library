@@ -10,19 +10,26 @@ services:
     environment:
       DJANGO_DEBUG: ${DJANGO_DEBUG:-1}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env.local}
-      DJANGO_ALLOWED_HOSTS: readinglocal.a007.bid,localhost,127.0.0.1
-      DJANGO_CSRF_TRUSTED_ORIGINS: https://readinglocal.a007.bid
+      DJANGO_ALLOWED_HOSTS: librarylocal.a007.bid,readinglocal.a007.bid,localhost,127.0.0.1
+      DJANGO_CSRF_TRUSTED_ORIGINS: https://librarylocal.a007.bid,https://readinglocal.a007.bid
       DATABASE_URL: postgresql://${POSTGRES_USER:?Set POSTGRES_USER in .env.local}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.local}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env.local}?sslmode=disable
     depends_on:
       postgres:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.reading-local.rule=Host(`readinglocal.a007.bid`)"
+      - "traefik.http.routers.reading-local.rule=Host(`librarylocal.a007.bid`)"
       - "traefik.docker.network=traefik"
       - "traefik.http.routers.reading-local.entrypoints=https"
       - "traefik.http.routers.reading-local.tls=true"
       - "traefik.http.services.reading-local.loadbalancer.server.port=8000"
+      - "traefik.http.routers.reading-local-legacy.rule=Host(`readinglocal.a007.bid`)"
+      - "traefik.http.routers.reading-local-legacy.entrypoints=https"
+      - "traefik.http.routers.reading-local-legacy.tls=true"
+      - "traefik.http.routers.reading-local-legacy.middlewares=library-local-redirect"
+      - "traefik.http.middlewares.library-local-redirect.redirectregex.regex=^https?://readinglocal[.]a007[.]bid(.*)"
+      - "traefik.http.middlewares.library-local-redirect.redirectregex.replacement=https://librarylocal.a007.bid$${1}"
+      - "traefik.http.middlewares.library-local-redirect.redirectregex.permanent=true"
     networks:
       - default
       - traefik
