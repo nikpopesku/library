@@ -33,11 +33,11 @@ permissions:
 
 jobs:
   scan:
-    name: Scan reading image
+    name: Scan Library image
     runs-on: ubuntu-latest
     env:
       SLACK_SECURITY_WEBHOOK_URL: ${{ secrets.SLACK_SECURITY_WEBHOOK_URL }}
-      IMAGE_REF: ${{ inputs.image-ref || 'ghcr.io/nikpopesku/reading-web:latest' }}
+      IMAGE_REF: ${{ inputs.image-ref || 'ghcr.io/nikpopesku/library-web:latest' }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
       - name: Check out scan helpers
@@ -56,6 +56,19 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # Findings are handled separately; a failure here means the scanner itself broke.
+      # Before the first Library release, production still uses the legacy image.
+      - name: Resolve production image during rename
+        id: image
+        env:
+          REQUESTED_IMAGE: ${{ inputs.image-ref }}
+        run: |
+          if [ -z "$REQUESTED_IMAGE" ] && ! docker manifest inspect "$IMAGE_REF" >/dev/null 2>&1; then
+            IMAGE_REF=ghcr.io/nikpopesku/reading-web:latest
+            docker manifest inspect "$IMAGE_REF" >/dev/null
+            echo "IMAGE_REF=$IMAGE_REF" >> "$GITHUB_ENV"
+            echo "Using the legacy production image until the first Library release."
+          fi
+
       - name: Run Trivy vulnerability scanner
         id: trivy
         uses: aquasecurity/trivy-action@v0.35.0
@@ -83,7 +96,7 @@ jobs:
       - name: Notify Slack when the scan could not run
         if: >-
           always() && (steps.checkout.outcome == 'failure' || steps.login.outcome == 'failure'
-          || steps.trivy.outcome == 'failure' || steps.summary.outcome == 'failure')
+          || steps.image.outcome == 'failure' || steps.trivy.outcome == 'failure' || steps.summary.outcome == 'failure')
         run: |
           if [ -x .github/scripts/image-scan.sh ]; then
             exec .github/scripts/image-scan.sh notify-error

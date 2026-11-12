@@ -110,4 +110,4 @@ jobs:
         with:
           context: .
           push: false
-          tags: ghcr.io/nikpopesku/reading-web:ci
+          tags: ghcr.io/nikpopesku/library-web:ci

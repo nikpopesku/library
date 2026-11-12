@@ -126,7 +126,9 @@ jobs:
           context: .
           push: true
           tags: |
+            ghcr.io/nikpopesku/library-web:latest
             ghcr.io/nikpopesku/reading-web:latest
+            ghcr.io/nikpopesku/library-web:${{ env.IMAGE_TAG }}
             ghcr.io/nikpopesku/reading-web:${{ env.IMAGE_TAG }}
 
       - name: Encode production secrets for SSH
@@ -214,7 +216,7 @@ jobs:
             create_secret "$DJANGO_SECRET_KEY_SECRET_NAME" "$PROD_DJANGO_SECRET_KEY_B64"
             create_secret "$DATABASE_URL_SECRET_NAME" "$PROD_DATABASE_URL_B64"
 
-            docker pull "ghcr.io/nikpopesku/reading-web:$IMAGE_TAG"
+            docker pull "ghcr.io/nikpopesku/library-web:$IMAGE_TAG"
             cd /home/spacer/reading
             IMAGE_TAG="$IMAGE_TAG" \
               DJANGO_SECRET_KEY_SECRET_NAME="$DJANGO_SECRET_KEY_SECRET_NAME" \
@@ -225,7 +227,7 @@ jobs:
             for attempt in $(seq 1 30); do
               for container in $(docker ps -q -f label=com.docker.swarm.service.name=reading_web); do
                 container_image="$(docker inspect --format '{{.Config.Image}}' "$container")"
-                if [ "${container_image#ghcr.io/nikpopesku/reading-web:$IMAGE_TAG}" != "$container_image" ]; then
+                if [ "${container_image#ghcr.io/nikpopesku/library-web:$IMAGE_TAG}" != "$container_image" ]; then
                   web_container="$container"
                   break
                 fi

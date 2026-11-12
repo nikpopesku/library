@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   web:
-    image: ghcr.io/nikpopesku/reading-web:${IMAGE_TAG:-staging}
+    image: ghcr.io/nikpopesku/library-web:${IMAGE_TAG:-staging}
     environment:
       DJANGO_DEBUG: "0"
       DJANGO_ALLOWED_HOSTS: reading.a007.bid

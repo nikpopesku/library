@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   web:
-    image: ghcr.io/nikpopesku/reading-web:${IMAGE_TAG:-latest}
+    image: ghcr.io/nikpopesku/library-web:${IMAGE_TAG:-latest}
     environment:
       DJANGO_DEBUG: "0"
       DJANGO_ALLOWED_HOSTS: reading.run24.top

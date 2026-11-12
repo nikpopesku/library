@@ -1,4 +1,4 @@
-# reading — project context
+# Library — project context
 
 ## Stack
 - Django 6.x, Python 3.14, PostgreSQL, Gunicorn, WhiteNoise
@@ -54,7 +54,9 @@ static/css/         # app.css
 - Staging (Sirius): on push to master via deploy-staging.yml
 - Production (Titan): only from a `v*` git tag on master via deploy-prod.yml (see "Releasing to prod")
 - Docker Swarm with Traefik + Let's Encrypt
-- Images: ghcr.io/nikpopesku/reading-web
+- Images: ghcr.io/nikpopesku/library-web (also publish legacy reading-web tags during RD-42 transition)
+- Repository: https://github.com/nikpopesku/library; Jira key remains RD.
+- Keep existing stack, container, volume, database and Django module names stable; see README "Project rename (RD-42)".
 - Orion: no deploy pipeline — `docker-compose-orion.yml` bind-mounts this
   repo straight into the `reading-web` container (`make orion-up`), so a
   `git pull`/merge on the orion host takes effect immediately, including any
