@@ -46,9 +46,9 @@ class BookAdmin(admin.ModelAdmin):
 @admin.register(Movie)
 class MovieAdmin(admin.ModelAdmin):
     form = MovieForm
-    list_display = ("poster_thumbnail", "title", "language", "watched_at", "rating")
-    list_filter = ("watched_at", "language", "rating")
-    search_fields = ("title", "notes", "language__name", "actors__name")
+    list_display = ("poster_thumbnail", "title", "release_year", "language", "watched_at", "rating")
+    list_filter = ("release_year", "watched_at", "language", "rating")
+    search_fields = ("title", "=release_year", "notes", "language__name", "actors__name")
     ordering = (F("watched_at").desc(nulls_last=True), "title")
     autocomplete_fields = ("language", "actors")
 

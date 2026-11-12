@@ -6,13 +6,13 @@ from django.core.management.base import BaseCommand
 from reading.models import Language, Movie
 
 EXAMPLE_MOVIES = (
-    ("Stalker", "Russian", date(2024, 2, 11), Decimal("9.5")),
-    ("Spirited Away", "Japanese", date(2024, 5, 3), Decimal("9")),
-    ("Parasite", "Korean", date(2024, 8, 17), Decimal("8.5")),
-    ("Amélie", "French", date(2025, 1, 26), Decimal("8")),
-    ("Whiplash", "English", date(2025, 4, 9), Decimal("9")),
-    ("The Lives of Others", "German", date(2025, 7, 21), Decimal("8.5")),
-    ("Cinema Paradiso", "Italian", date(2025, 10, 5), None),
+    ("Stalker", 1979, "Russian", date(2024, 2, 11), Decimal("9.5")),
+    ("Spirited Away", 2001, "Japanese", date(2024, 5, 3), Decimal("9")),
+    ("Parasite", 2019, "Korean", date(2024, 8, 17), Decimal("8.5")),
+    ("Amélie", 2001, "French", date(2025, 1, 26), Decimal("8")),
+    ("Whiplash", 2014, "English", date(2025, 4, 9), Decimal("9")),
+    ("The Lives of Others", 2006, "German", date(2025, 7, 21), Decimal("8.5")),
+    ("Cinema Paradiso", 1988, "Italian", date(2025, 10, 5), None),
 )
 
 
@@ -26,10 +26,18 @@ class Command(BaseCommand):
             self.style.SUCCESS(f"Example movies: {created} created, {existing} existing.")
         )
 
-    def _ensure_movie(self, title, language_name, watched_at, rating):
+    def _ensure_movie(self, title, release_year, language_name, watched_at, rating):
         language, _ = Language.objects.get_or_create(name=language_name)
-        _, was_created = Movie.objects.get_or_create(
+        movie, was_created = Movie.objects.get_or_create(
             title=title,
-            defaults={"language": language, "watched_at": watched_at, "rating": rating},
+            defaults={
+                "release_year": release_year,
+                "language": language,
+                "watched_at": watched_at,
+                "rating": rating,
+            },
         )
+        if movie.release_year is None:
+            movie.release_year = release_year
+            movie.save(update_fields=["release_year"])
         return was_created

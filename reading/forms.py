@@ -110,7 +110,16 @@ class BookForm(forms.ModelForm):
 class MovieForm(forms.ModelForm):
     class Meta:
         model = Movie
-        fields = ["title", "poster", "language", "actors", "watched_at", "rating", "notes"]
+        fields = [
+            "title",
+            "release_year",
+            "poster",
+            "language",
+            "actors",
+            "watched_at",
+            "rating",
+            "notes",
+        ]
         widgets = {
             "poster": forms.ClearableFileInput(attrs={"accept": "image/jpeg,image/png"}),
             "watched_at": forms.DateInput(attrs={"type": "date"}),

@@ -1,4 +1,5 @@
 import struct
+from datetime import date
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -140,8 +141,17 @@ class Actor(models.Model):
         return self.name
 
 
+def maximum_movie_release_year():
+    return date.today().year + 1
+
+
 class Movie(models.Model):
     title = models.CharField(max_length=255)
+    release_year = models.PositiveSmallIntegerField(
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(1888), MaxValueValidator(maximum_movie_release_year)],
+    )
     actors = models.ManyToManyField(Actor, related_name="movies", blank=True)
     poster = models.FileField(
         blank=True,
