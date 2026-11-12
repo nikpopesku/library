@@ -5,8 +5,8 @@ services:
     image: ghcr.io/nikpopesku/library-web:${IMAGE_TAG:-staging}
     environment:
       DJANGO_DEBUG: "0"
-      DJANGO_ALLOWED_HOSTS: reading.a007.bid
-      DJANGO_CSRF_TRUSTED_ORIGINS: https://reading.a007.bid
+      DJANGO_ALLOWED_HOSTS: library.a007.bid,reading.a007.bid
+      DJANGO_CSRF_TRUSTED_ORIGINS: https://library.a007.bid,https://reading.a007.bid
       DJANGO_SECRET_KEY: /run/secrets/reading_django_secret_key
       DATABASE_URL: ${DATABASE_URL}
     extra_hosts:
@@ -26,12 +26,20 @@ services:
         order: start-first
       labels:
         - "traefik.enable=true"
-        - "traefik.docker.network=traefik"
+        - "traefik.swarm.network=traefik"
         - "traefik.http.services.reading-staging.loadbalancer.server.port=8000"
-        - "traefik.http.routers.reading-staging-https.rule=Host(`reading.a007.bid`)"
+        - "traefik.http.routers.reading-staging-https.rule=Host(`library.a007.bid`)"
         - "traefik.http.routers.reading-staging-https.entrypoints=websecure"
         - "traefik.http.routers.reading-staging-https.tls=true"
         - "traefik.http.routers.reading-staging-https.tls.certresolver=myresolver"
+        - "traefik.http.routers.reading-staging-legacy.rule=Host(`reading.a007.bid`)"
+        - "traefik.http.routers.reading-staging-legacy.entrypoints=websecure"
+        - "traefik.http.routers.reading-staging-legacy.tls=true"
+        - "traefik.http.routers.reading-staging-legacy.tls.certresolver=myresolver"
+        - "traefik.http.routers.reading-staging-legacy.middlewares=library-staging-redirect"
+        - "traefik.http.middlewares.library-staging-redirect.redirectregex.regex=^https?://reading[.]a007[.]bid(.*)"
+        - "traefik.http.middlewares.library-staging-redirect.redirectregex.replacement=https://library.a007.bid$${1}"
+        - "traefik.http.middlewares.library-staging-redirect.redirectregex.permanent=true"
 
 networks:
   default:

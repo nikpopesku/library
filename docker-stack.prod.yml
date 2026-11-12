@@ -5,8 +5,8 @@ services:
     image: ghcr.io/nikpopesku/library-web:${IMAGE_TAG:-latest}
     environment:
       DJANGO_DEBUG: "0"
-      DJANGO_ALLOWED_HOSTS: reading.run24.top
-      DJANGO_CSRF_TRUSTED_ORIGINS: https://reading.run24.top
+      DJANGO_ALLOWED_HOSTS: library.run24.top,reading.run24.top
+      DJANGO_CSRF_TRUSTED_ORIGINS: https://library.run24.top,https://reading.run24.top
       DJANGO_SECRET_KEY: /run/secrets/reading_django_secret_key
       DATABASE_URL: /run/secrets/reading_database_url
     extra_hosts:
@@ -29,13 +29,21 @@ services:
         - "traefik.http.services.reading-prod.loadbalancer.server.port=8000"
         - "traefik.http.middlewares.reading-prod-redirect-https.redirectscheme.scheme=https"
         - "traefik.http.middlewares.reading-prod-redirect-https.redirectscheme.permanent=true"
-        - "traefik.http.routers.reading-prod-http.rule=Host(`reading.run24.top`)"
+        - "traefik.http.routers.reading-prod-http.rule=Host(`library.run24.top`) || Host(`reading.run24.top`)"
         - "traefik.http.routers.reading-prod-http.entrypoints=web"
         - "traefik.http.routers.reading-prod-http.middlewares=reading-prod-redirect-https"
-        - "traefik.http.routers.reading-prod-https.rule=Host(`reading.run24.top`)"
+        - "traefik.http.routers.reading-prod-https.rule=Host(`library.run24.top`)"
         - "traefik.http.routers.reading-prod-https.entrypoints=websecure"
         - "traefik.http.routers.reading-prod-https.tls=true"
         - "traefik.http.routers.reading-prod-https.tls.certresolver=myresolver"
+        - "traefik.http.routers.reading-prod-legacy.rule=Host(`reading.run24.top`)"
+        - "traefik.http.routers.reading-prod-legacy.entrypoints=websecure"
+        - "traefik.http.routers.reading-prod-legacy.tls=true"
+        - "traefik.http.routers.reading-prod-legacy.tls.certresolver=myresolver"
+        - "traefik.http.routers.reading-prod-legacy.middlewares=library-prod-redirect"
+        - "traefik.http.middlewares.library-prod-redirect.redirectregex.regex=^https?://reading[.]run24[.]top(.*)"
+        - "traefik.http.middlewares.library-prod-redirect.redirectregex.replacement=https://library.run24.top$${1}"
+        - "traefik.http.middlewares.library-prod-redirect.redirectregex.permanent=true"
       replicas: 1
       restart_policy:
         condition: on-failure
