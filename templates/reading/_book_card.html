@@ -13,7 +13,6 @@
     {% if book.notes %}<p>{{ book.notes|linebreaksbr }}</p>{% endif %}
   </div>
   <dl class="book-meta">
-    {% if book.started_at %}<div><dt>Started</dt><dd>{{ book.started_at }}</dd></div>{% endif %}
     {% if book.finished_at %}<div><dt>Finished</dt><dd>{{ book.finished_at }}</dd></div>{% endif %}
     {% if book.rating %}<div><dt>Rating</dt><dd>{{ book.rating }}/10</dd></div>{% endif %}
   </dl>

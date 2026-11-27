@@ -101,9 +101,6 @@
           <a class="sort-link {% if sort_links.language.is_active %}active{% endif %}" href="{{ sort_links.language.url }}">Language <span aria-hidden="true">{{ sort_links.language.direction }}</span></a>
         </th>
         <th>Tags</th>
-        <th aria-sort="{{ sort_links.started_at.aria_sort }}">
-          <a class="sort-link {% if sort_links.started_at.is_active %}active{% endif %}" href="{{ sort_links.started_at.url }}">Started <span aria-hidden="true">{{ sort_links.started_at.direction }}</span></a>
-        </th>
         <th aria-sort="{{ sort_links.finished_at.aria_sort }}">
           <a class="sort-link {% if sort_links.finished_at.is_active %}active{% endif %}" href="{{ sort_links.finished_at.url }}">Finished <span aria-hidden="true">{{ sort_links.finished_at.direction }}</span></a>
         </th>
@@ -138,7 +135,6 @@
               -
             {% endif %}
           </td>
-          <td class="cell-started" data-label="Started">{{ book.started_at|default:"-" }}</td>
           <td class="cell-finished" data-label="Finished">{{ book.finished_at|default:"-" }}</td>
           <td class="cell-rating" data-label="Rating">{% if book.rating %}{{ book.rating }}/10{% else %}-{% endif %}</td>
           <td class="cell-notes" data-label="Notes">{{ book.notes|default:"-"|linebreaksbr }}</td>

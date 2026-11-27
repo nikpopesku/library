@@ -86,14 +86,12 @@ class BookForm(forms.ModelForm):
             "language",
             "cover_image",
             "status",
-            "started_at",
             "finished_at",
             "rating",
             "notes",
         ]
         widgets = {
             "cover_image": forms.ClearableFileInput(attrs={"accept": "image/jpeg,image/png"}),
-            "started_at": forms.DateInput(attrs={"type": "date"}),
             "finished_at": forms.DateInput(attrs={"type": "date"}),
             "rating": forms.NumberInput(attrs={"step": "0.5", "min": "1", "max": "10"}),
             "notes": forms.Textarea(attrs={"rows": 5}),
