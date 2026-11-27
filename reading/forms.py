@@ -2,6 +2,7 @@ import unicodedata
 from difflib import SequenceMatcher
 
 from django import forms
+from django.contrib.admin.widgets import AdminDateWidget
 from django.core.exceptions import ValidationError
 
 from .models import ACTIVE_BOOK_STATUSES, Author, Book, Movie
@@ -92,7 +93,7 @@ class BookForm(forms.ModelForm):
         ]
         widgets = {
             "cover_image": forms.ClearableFileInput(attrs={"accept": "image/jpeg,image/png"}),
-            "finished_at": forms.DateInput(attrs={"type": "date"}),
+            "finished_at": AdminDateWidget(),
             "rating": forms.NumberInput(attrs={"step": "0.5", "min": "1", "max": "10"}),
             "notes": forms.Textarea(attrs={"rows": 5}),
         }
@@ -120,7 +121,7 @@ class MovieForm(forms.ModelForm):
         ]
         widgets = {
             "poster": forms.ClearableFileInput(attrs={"accept": "image/jpeg,image/png"}),
-            "watched_at": forms.DateInput(attrs={"type": "date"}),
+            "watched_at": AdminDateWidget(),
             "rating": forms.NumberInput(attrs={"step": "0.5", "min": "1", "max": "10"}),
             "notes": forms.Textarea(attrs={"rows": 5}),
         }
