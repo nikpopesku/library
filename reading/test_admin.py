@@ -3,6 +3,7 @@ from datetime import date
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.formats import get_format
 
 from .models import Book, BookStatus
 
@@ -70,3 +71,20 @@ class BookAdminChangelistTests(TestCase):
 
     def _titles(self, response):
         return [book.title for book in response.context["cl"].result_list]
+
+
+class AdminCalendarTests(TestCase):
+    def test_week_starts_on_monday(self):
+        self.assertEqual(get_format("FIRST_DAY_OF_WEEK"), 1)
+
+    def test_admin_js_catalog_serves_monday_start(self):
+        user = get_user_model().objects.create_superuser(
+            username="calendar-test",
+            email="calendar@example.invalid",
+            password="test-only-password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("admin:jsi18n"))
+
+        self.assertContains(response, '"FIRST_DAY_OF_WEEK": 1,')
