@@ -1,10 +1,12 @@
 from datetime import date
 
+from django.contrib.admin.widgets import AdminDateWidget
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from django.utils.formats import get_format
 
+from .forms import BookForm, MovieForm
 from .models import Book, BookStatus
 
 
@@ -88,3 +90,8 @@ class AdminCalendarTests(TestCase):
         response = self.client.get(reverse("admin:jsi18n"))
 
         self.assertContains(response, '"FIRST_DAY_OF_WEEK": 1,')
+
+    def test_date_fields_use_the_admin_calendar_widget(self):
+        for form, field in ((BookForm, "finished_at"), (MovieForm, "watched_at")):
+            with self.subTest(field=field):
+                self.assertIsInstance(form().fields[field].widget, AdminDateWidget)
