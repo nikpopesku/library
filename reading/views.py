@@ -1,5 +1,5 @@
 from django.core.paginator import Paginator
-from django.db.models import Case, Count, F, IntegerField, Q, Value, When
+from django.db.models import Case, Count, F, IntegerField, Value, When
 from django.http import HttpResponseBadRequest
 from django.shortcuts import render
 
@@ -102,7 +102,6 @@ def _book_sort_orderings():
         **_nullable_orderings("author", "author__name"),
         **_nullable_orderings("language", "language__name"),
         **_orderings_both_ways("status", (status_order, "title"), (status_order.desc(), "title")),
-        **_nullable_orderings("started_at", "started_at"),
         **_nullable_orderings("finished_at", "finished_at"),
         **_nullable_orderings("rating", "rating"),
     }
@@ -162,10 +161,8 @@ def book_list(request):
         {
             d.year
             for d in Book.objects.exclude(status=BookStatus.DELETED)
-            .filter(Q(finished_at__isnull=False) | Q(started_at__isnull=False))
-            .values_list("finished_at", "started_at")
-            for d in (d[0] or d[1],)
-            if d is not None
+            .filter(finished_at__isnull=False)
+            .values_list("finished_at", flat=True)
         },
         reverse=True,
     )
@@ -176,7 +173,7 @@ def book_list(request):
             if year_int not in years:
                 selected_year = ""
             else:
-                books = books.filter(Q(finished_at__year=year_int) | Q(started_at__year=year_int))
+                books = books.filter(finished_at__year=year_int)
         except ValueError:
             selected_year = ""
 
@@ -230,7 +227,6 @@ def book_list(request):
                 "author": _sort_link(request, selected_sort, "author"),
                 "language": _sort_link(request, selected_sort, "language"),
                 "status": _sort_link(request, selected_sort, "status"),
-                "started_at": _sort_link(request, selected_sort, "started_at"),
                 "finished_at": _sort_link(request, selected_sort, "finished_at"),
                 "rating": _sort_link(request, selected_sort, "rating"),
             },

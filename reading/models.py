@@ -98,7 +98,6 @@ class Book(models.Model):
         db_index=True,
     )
     tags = models.ManyToManyField(Tag, related_name="books", blank=True)
-    started_at = models.DateField(blank=True, null=True)
     finished_at = models.DateField(blank=True, null=True)
     rating = models.DecimalField(
         max_digits=3,

@@ -29,7 +29,6 @@ class BookAdmin(admin.ModelAdmin):
         "author",
         "language",
         "status",
-        "started_at",
         "finished_at",
         "rating",
     )

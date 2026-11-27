@@ -33,7 +33,7 @@ class BookAdminChangelistTests(TestCase):
             self._titles(response),
             ["Alpha newer", "Zulu newer", "Older", "Also unfinished", "Unfinished"],
         )
-        self.assertEqual(response.context["cl"].get_ordering_field_columns()[7], "desc")
+        self.assertEqual(response.context["cl"].get_ordering_field_columns()[6], "desc")
 
     def test_finished_date_filter_is_available_without_excluding_books_by_default(self):
         response = self.client.get(self.url)
@@ -64,7 +64,7 @@ class BookAdminChangelistTests(TestCase):
         )
 
     def test_user_can_reverse_finished_date_order(self):
-        response = self.client.get(self.url, {"o": "7", "finished_at__isnull": "False"})
+        response = self.client.get(self.url, {"o": "6", "finished_at__isnull": "False"})
 
         self.assertEqual(self._titles(response), ["Older", "Alpha newer", "Zulu newer"])
 
